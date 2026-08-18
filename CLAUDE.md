@@ -320,6 +320,10 @@ src/
   inventoryReport.js                   CLI: `node src/inventoryReport.js` - turns that scan into
                                         output/image-inventory.html, a searchable per-property table.
                                         Run inventoryScan.js first.
+  inventoryMarkdown.js                 CLI: `node src/inventoryMarkdown.js` - same scan rendered as
+                                        output/consolidated-report.md: totals, a gaps-first table,
+                                        then all 712 with each room type's own image count.
+                                        Run inventoryScan.js first.
   fillPropertyBatch.js                 CLI: `node src/fillPropertyBatch.js <code> [<code>...]`
                                         or `--file <json>`. Fills all three components for the given
                                         properties: gallery from DAM, listing from the reference feed
