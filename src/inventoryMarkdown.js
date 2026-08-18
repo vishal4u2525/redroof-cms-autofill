@@ -83,4 +83,5 @@ Machine-readable copies: \`output/consolidated-report.csv\` (one row per propert
 `;
 
 await writeFile('output/consolidated-report.md', md);
+await writeFile('reports/image-inventory.md', md); // tracked copy, shareable via the repo
 console.log('written output/consolidated-report.md |', md.length, 'bytes |', ok.length, 'properties |', gaps.length, 'with gaps');
