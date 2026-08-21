@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { readFile, writeFile } from 'node:fs/promises';
 import { getComponentData } from './clients/cmsClient.js';
+import { asArray } from './asArray.js';
 
 // READ-ONLY. Per property: listing image count, each gallery tab's image
 // count, room-type record count, and the image count on every individual
@@ -31,15 +32,15 @@ async function worker() {
         const tabs = {};
         for (const t of TABS) {
           const rec = gal.find((g) => (g.Data['gallery-tab-name'] || '').trim().toLowerCase() === t.toLowerCase());
-          tabs[t] = rec ? (rec.Data['gallery-images'] || []).length : null;
+          tabs[t] = rec ? asArray(rec.Data['gallery-images']).length : null;
         }
         const rooms = (pr.ChildRecords || [])
           .filter((r) => r.ComponentAliasName === 'room-type')
-          .map((r) => ({ code: r.Data['room-type-code'] || '(no code)', images: (r.Data['room-images'] || []).length }))
+          .map((r) => ({ code: r.Data['room-type-code'] || '(no code)', images: asArray(r.Data['room-images']).length }))
           .sort((a, b) => a.code.localeCompare(b.code));
         rows.push({
           code, status: 'ok', recordId: pr.Id,
-          listing: (pr.Data['listing-page-image'] || []).length,
+          listing: asArray(pr.Data['listing-page-image']).length,
           exterior: tabs.Exterior, interior: tabs.Interior, rooms: tabs.Rooms,
           galleryTotal: TABS.reduce((n, t) => n + (tabs[t] || 0), 0),
           roomTypeCount: rooms.length,

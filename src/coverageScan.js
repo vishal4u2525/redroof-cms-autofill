@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { readFile, writeFile } from 'node:fs/promises';
 import { getComponentData } from './clients/cmsClient.js';
+import { asArray } from './asArray.js';
 
 // READ-ONLY. Current image state of every property: listing-page-image,
 // each property-level-gallery tab, and room-type room-images.
@@ -47,18 +48,18 @@ async function worker() {
           const tabCount = {};
           for (const t of TABS) {
             const rec = gal.find((g) => (g.Data['gallery-tab-name'] || '').trim().toLowerCase() === t.toLowerCase());
-            tabCount[t] = rec ? (rec.Data['gallery-images'] || []).length : null; // null = tab record missing
+            tabCount[t] = rec ? asArray(rec.Data['gallery-images']).length : null; // null = tab record missing
           }
           rows.push({
             code,
             status: 'ok',
             recordId: pr.Id,
-            listing: (pr.Data['listing-page-image'] || []).length,
+            listing: asArray(pr.Data['listing-page-image']).length,
             exterior: tabCount.Exterior,
             interior: tabCount.Interior,
             rooms: tabCount.Rooms,
             roomTypeRecords: rt.length,
-            roomTypesWithoutImage: rt.filter((r) => (r.Data['room-images'] || []).length === 0).length,
+            roomTypesWithoutImage: rt.filter((r) => asArray(r.Data['room-images']).length === 0).length,
             writtenThisSession: !!(damWritten[code] || lgWritten[code]),
           });
         }

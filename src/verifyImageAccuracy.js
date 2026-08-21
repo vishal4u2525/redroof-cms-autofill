@@ -36,22 +36,9 @@ export function similarity(a, b) {
   return inter / new Set([...setA, ...setB]).size;
 }
 
-// A field that's normally an array (gallery-images, room-images) has been
-// observed to come back as the literal STRING "[]" instead of a real empty
-// array (seen on RRI1280/RRI1397's Exterior tab) - parse defensively rather
-// than assume the shape.
-export function asArray(value) {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
+// asArray moved to ./asArray.js - four modules need it now. Re-exported here
+// so the unit tests (which import it from this file) keep working.
+export { asArray } from './asArray.js';
 
 export function extractFileName(img) {
   if (!img) return null;

@@ -1,5 +1,6 @@
 import { getComponentData } from './clients/cmsClient.js';
 import { getWebContent } from './clients/redistayClient.js';
+import { asArray } from './asArray.js';
 
 export const GALLERY_IMAGE_FIELD_ALIAS = 'gallery-images';
 export const GALLERY_MIBLOCK_ID = 20133;
@@ -111,7 +112,7 @@ export async function buildAmenitiesMovePlan(propertyCode) {
       );
       if (!cmsMatch) continue;
 
-      const images = cmsMatch.Data['gallery-images'] || [];
+      const images = asArray(cmsMatch.Data['gallery-images']);
       if (!amenityFileNames.size || !images.length) continue;
 
       let toMove = images.filter((img) => amenityFileNames.has(normalizeFileName(img.ResourceFile)) || amenityFileNames.has(normalizeFileName(img.OriginalImagePath?.split('/').pop())));
@@ -155,7 +156,7 @@ export async function buildAmenitiesMovePlan(propertyCode) {
         fieldAlias: GALLERY_IMAGE_FIELD_ALIAS,
         // Preserve any images already in Amenities (e.g. from an earlier
         // partial run) and append the newly-moved ones, deduped by URL.
-        assetUrls: [...new Set([...(amenitiesRecord?.Data['gallery-images'] || []).map((img) => img.OriginalImagePath), ...moved.map((m) => m.url)])],
+        assetUrls: [...new Set([...asArray(amenitiesRecord?.Data['gallery-images']).map((img) => img.OriginalImagePath), ...moved.map((m) => m.url)])],
         moved,
       });
     }

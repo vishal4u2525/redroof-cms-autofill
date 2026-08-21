@@ -226,6 +226,14 @@ the actual asset URL to write.** This project never uploads images — DAM asset
   the batch skipped all three of its tabs — a full re-scan showed all three present the whole time.
   Confirm with repeated reads (they were stable across 3 reads for the genuinely-missing cases)
   before concluding a record needs creating.
+- **An asset field can come back as the literal STRING `"[]"`, not an array.** `gallery-images`,
+  `room-images` and `listing-page-image` arrive in three shapes: a real array, the key absent, or
+  the string `"[]"` (seen on `RRI1280` and `RRI1397`'s Exterior tab). `value || []` lets the string
+  through because it is truthy, and then it fails two different ways: `.filter()`/`.map()` throw
+  (`"images.filter is not a function"` killed `RRI1280` mid-batch), and **`.length` silently returns
+  2, so an EMPTY tab reports two images** — which is how the inventory report came to claim RRI1280
+  had 2 Exterior images when it had none. Always go through `asArray()` in `src/asArray.js`; the
+  crash is loud but the miscount is not.
 - **Leading-zero property codes have no DAM folder at all** — e.g. `RRI030`'s photos are not at
   `red-roof/rri030/siteimages/`, and no `rri30`-without-the-zero folder exists either (verified by
   scanning 500 assets for both spellings). Text-searching `"030"` *does* return hits, but they're
