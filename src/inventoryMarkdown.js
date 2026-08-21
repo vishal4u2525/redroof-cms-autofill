@@ -6,7 +6,10 @@ const rows = JSON.parse(await readFile('output/consolidated-report.json', 'utf8'
 
 // Filled minutes before the scan; GetComponentData lags hours on these
 // components, so their zeros are a stale read, not a real gap.
-const PENDING = new Set(['HTS1031', 'RRI079', 'RRI1272', 'RRI1279', 'RRI1426', 'RRI455', 'RRI905', 'TRC1415']);
+// Reads have settled for every property, so nothing is pending. Kept as a
+// mechanism: after a big write run, list the codes whose reads have not
+// caught up yet so they are reported separately instead of as gaps.
+const PENDING = new Set([]);
 
 const ok = rows.filter((r) => r.status === 'ok');
 const bad = rows.filter((r) => r.status !== 'ok');
@@ -20,14 +23,15 @@ const t = {
   gallery: ok.reduce((a, r) => a + r.galleryTotal, 0),
   ext: ok.reduce((a, r) => a + (r.exterior || 0), 0),
   int: ok.reduce((a, r) => a + (r.interior || 0), 0),
+  amen: ok.reduce((a, r) => a + (r.amenities || 0), 0),
   rms: ok.reduce((a, r) => a + (r.rooms || 0), 0),
   roomRecs: ok.reduce((a, r) => a + r.roomTypeCount, 0),
   roomImgs: ok.reduce((a, r) => a + r.roomsWithImage, 0),
 };
 const gaps = ok.filter(hasGap);
 
-const row = (r) => `| ${r.code} | ${r.recordId} | ${n(r.listing)} | ${n(r.exterior)} | ${n(r.interior)} | ${n(r.rooms)} | ${r.galleryTotal} | ${r.roomsWithImage}/${r.roomTypeCount} | ${roomStr(r)} |`;
-const head = '| Property | Record | Listing | Ext | Int | Rooms | Gallery total | Room images | Room types · images each |\n|---|---|---|---|---|---|---|---|---|';
+const row = (r) => `| ${r.code} | ${r.recordId} | ${n(r.listing)} | ${n(r.exterior)} | ${n(r.interior)} | ${n(r.amenities)} | ${n(r.rooms)} | ${r.galleryTotal} | ${r.roomsWithImage}/${r.roomTypeCount} | ${roomStr(r)} |`;
+const head = '| Property | Record | Listing | Ext | Int | Amen | Rooms | Gallery total | Room images | Room types · images each |\n|---|---|---|---|---|---|---|---|---|---|';
 
 const md = `# Red Roof CMS — Image Inventory
 
@@ -44,6 +48,7 @@ returns, not what was written to it.**
 | Gallery images | ${t.gallery.toLocaleString('en-US')} |
 | &nbsp;&nbsp;· Exterior | ${t.ext.toLocaleString('en-US')} |
 | &nbsp;&nbsp;· Interior | ${t.int.toLocaleString('en-US')} |
+| &nbsp;&nbsp;· Amenities | ${t.amen.toLocaleString('en-US')} |
 | &nbsp;&nbsp;· Rooms | ${t.rms.toLocaleString('en-US')} |
 | Room-type records | ${t.roomRecs.toLocaleString('en-US')} |
 | Room images set | ${t.roomImgs.toLocaleString('en-US')} of ${t.roomRecs.toLocaleString('en-US')} |

@@ -1,7 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
 const rows = JSON.parse(await readFile('output/consolidated-report.json', 'utf8'));
-const PENDING = new Set(['HTS1031', 'RRI079', 'RRI1272', 'RRI1279', 'RRI1426', 'RRI455', 'RRI905', 'TRC1415']);
+// Reads have settled for every property, so nothing is pending. Kept as a
+// mechanism: after a big write run, list the codes whose reads have not
+// caught up yet so they are reported separately instead of as gaps.
+const PENDING = new Set([]);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
 const ok = rows.filter((r) => r.status === 'ok');
@@ -27,6 +30,7 @@ const body = ok.map((r) => {
   <td class="num">${cell(r.listing)}</td>
   <td class="num">${cell(r.exterior)}</td>
   <td class="num">${cell(r.interior)}</td>
+  <td class="num">${cell(r.amenities)}</td>
   <td class="num">${cell(r.rooms)}</td>
   <td class="num strong">${cell(r.galleryTotal)}</td>
   <td class="num">${r.roomsWithImage}<span class="of">/${r.roomTypeCount}</span></td>
@@ -121,7 +125,7 @@ code{font-family:ui-monospace,monospace;font-size:.92em;background:var(--sunk);p
 
 <div class="tablewrap"><table>
   <thead><tr>
-    <th>Property</th><th>Listing</th><th>Ext.</th><th>Int.</th><th>Rooms</th><th>Gallery total</th><th>Room images</th><th>Room types &middot; images each</th>
+    <th>Property</th><th>Listing</th><th>Ext.</th><th>Int.</th><th>Amen.</th><th>Rooms</th><th>Gallery total</th><th>Room images</th><th>Room types &middot; images each</th>
   </tr></thead>
   <tbody id="tb">
 ${body}

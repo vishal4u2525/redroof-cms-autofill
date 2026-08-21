@@ -226,6 +226,23 @@ the actual asset URL to write.** This project never uploads images — DAM asset
   the batch skipped all three of its tabs — a full re-scan showed all three present the whole time.
   Confirm with repeated reads (they were stable across 3 reads for the genuinely-missing cases)
   before concluding a record needs creating.
+- **The whole read can go down estate-wide, and it lies on the way back up.** Mid-way through an
+  Amenities batch on 2026-08-21, `GetComponentData` began answering `HTTP 200` with `TotalCount: 0`
+  for **every** property — filtered or unfiltered, authed or not — and CMS admin showed nothing
+  either, so it was a CMS-side outage, not this project's request or token. 60 properties in that
+  slice reported `No CMS property-data record found`; all 60 were fine and processed cleanly once
+  the read returned. Worse, **during recovery it briefly returned a record that does not exist**:
+  `RRI207` came back with `TotalCount: 2` (ids `139384` + `223480`), and a scan of all 712 minutes
+  later found `223480` nowhere and zero duplicates estate-wide. **Never act on an extra record
+  during or just after an outage** — deleting the "duplicate" could have destroyed a real one.
+  Confirm any structural conclusion with repeated reads once the estate reads clean.
+- **`UpdateMiblockRecordAsset` can store FEWER assets than it accepted.** On `RRI360`'s Interior
+  (record `144041`) a 4-URL payload returned field-level `Success: true` twice, and both times only
+  2 of the 4 were stored — `360-lobby-2.jpg` and `360-breakfast.jpg` never persisted, while the
+  other two did. All four are real assets in the same DAM folder with structurally identical URLs,
+  and reads were verified stable at the time (712-property scan clean). Distinct from the 5-asset
+  cap (only 4 were sent) and from read lag. Cause unknown. **After any multi-asset write that
+  matters, read the field back and compare counts.**
 - **An asset field can come back as the literal STRING `"[]"`, not an array.** `gallery-images`,
   `room-images` and `listing-page-image` arrive in three shapes: a real array, the key absent, or
   the string `"[]"` (seen on `RRI1280` and `RRI1397`'s Exterior tab). `value || []` lets the string
@@ -404,15 +421,30 @@ output/                       all generated data - plans, logs, property list. G
    every remaining gap needs photos uploaded to DAM or room data added in RediStay.
    Cross-checking written-vs-read found **zero** properties where a write did not land.
    Report: `output/image-zero-report.csv`, `output/full-diagnosis.json`.
-6. **Total audit trail: 10,520 write calls, zero `Success: false`, zero corrupt log lines.**
-7. **Known unverified item**: on `HTS1030` all 4 writes returned `Success: true`, but
+6. **4th gallery category (`Amenities`) rollout COMPLETE for all 712** (`amenitiesGalleryBatch.js`,
+   slices 200-300 through 700-712 run here on top of Jainil's 0-200). Pool / fitness / business
+   centre / vending / laundry / meeting-room images moved out of Exterior/Interior/Rooms into their
+   own tab, shrink-first so a failure can never duplicate. **530 properties now carry an Amenities
+   record holding 889 images**; 182 had nothing to move.
+   - The 5-asset cap **was lifted again** before this run (re-verified live on `RRI360`/`RRI479`,
+     the two properties whose cap failures had paused the rollout). Both then turned out fine
+     without the paused fix script - `fixRRI360RRI479.js` is now stale and should not be run: its
+     RRI360 step deletes an Amenities record that no longer exists, and RRI479 resolved itself.
+7. **Verified end state (full 4-tab re-read of all 712, 2026-08-22):** listing images 712/712;
+   gallery 6,609 images (Exterior 921, Interior 2,102, Amenities 889, Rooms 2,697); room images
+   4,598 of 4,614. **15 properties carry a gap**: 8 get no `RoomDetails` from RediStay so they have
+   no room-type records at all (their galleries are full), and 7 have some rooms without an image.
+   Reports: `reports/image-inventory.md`, `output/consolidated-report.csv`,
+   `output/consolidated-rooms.csv`.
+8. **Total audit trail: 10,520 write calls, zero `Success: false`, zero corrupt log lines.**
+9. **Known unverified item**: on `HTS1030` all 4 writes returned `Success: true`, but
    `GetComponentData` still read back empty on two separate re-reads minutes apart. Consistent with
    the documented read-lag (rule 6) and with the fact that no write in 10,520 calls was rejected —
    but **not confirmed in CMS admin**. Worth a spot-check.
-8. Branches: work happens on `jainil-develop` and `vishal-develop`; **`main` is not touched**, per
+10. Branches: work happens on `jainil-develop` and `vishal-develop`; **`main` is not touched**, per
    explicit instruction. `output/` is gitignored, so each person's progress files aren't visible to
    the other — share status separately before assuming a range is untouched.
-9. **Strict 3-node accuracy audit (2026-08-19) — done, near-100%, 2 items need a human.** The user
+11. **Strict 3-node accuracy audit (2026-08-19) — done, near-100%, 2 items need a human.** The user
    tightened the spec: every image must trace to one exact reference field — `listing-page-image` <-
    `ThumbnailImage.Image.FileName`, `gallery-images` (3 tabs) <- `ImageGallery[].Image.FileName`,
    `room-images` <- `RoomDetails[].ThumbnailImage.Image.FileName`. Built `verifyImageAccuracy.js` /
@@ -451,7 +483,7 @@ output/                       all generated data - plans, logs, property list. G
      comes back as the literal **string** `"[]"` instead of a real array, crashing a naive `.map()`.
      See `asArray()` in `verifyImageAccuracy.js` — defend against this in any new code that reads
      these fields.
-10. **4th gallery category "Amenities" (2026-08-21) — IN PROGRESS, paused pending a CMS-side answer.**
+12. **4th gallery category "Amenities" (2026-08-21) — IN PROGRESS, paused pending a CMS-side answer.**
     Client added a 4th `property-level-gallery` tab alongside Exterior/Interior/Rooms, with their own
     examples: Exterior includes pet area/fire pit/EV charging; Interior includes lobby/breakfast;
     Amenities covers pool, fitness center, business center, vending, laundry, meeting rooms.

@@ -6,7 +6,9 @@ import { asArray } from './asArray.js';
 // READ-ONLY. Per property: listing image count, each gallery tab's image
 // count, room-type record count, and the image count on every individual
 // room-type record.
-const TABS = ['Exterior', 'Interior', 'Rooms'];
+// Amenities is the 4th gallery tab (client-requested 2026-08-21) - pool,
+// fitness, business centre, vending, laundry, meeting room.
+const TABS = ['Exterior', 'Interior', 'Rooms', 'Amenities'];
 const CONCURRENCY = 3;
 const RETRIES = 3;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -41,7 +43,7 @@ async function worker() {
         rows.push({
           code, status: 'ok', recordId: pr.Id,
           listing: asArray(pr.Data['listing-page-image']).length,
-          exterior: tabs.Exterior, interior: tabs.Interior, rooms: tabs.Rooms,
+          exterior: tabs.Exterior, interior: tabs.Interior, rooms: tabs.Rooms, amenities: tabs.Amenities,
           galleryTotal: TABS.reduce((n, t) => n + (tabs[t] || 0), 0),
           roomTypeCount: rooms.length,
           roomsWithImage: rooms.filter((r) => r.images > 0).length,
@@ -60,10 +62,10 @@ rows.sort((a, b) => a.code.localeCompare(b.code));
 await writeFile('output/consolidated-report.json', JSON.stringify(rows, null, 1));
 
 // property-level CSV
-const head = 'propertyCode,recordId,listingImages,exterior,interior,rooms,galleryTotal,roomTypeCount,roomsWithImage,roomsWithoutImage,status';
+const head = 'propertyCode,recordId,listingImages,exterior,interior,rooms,amenities,galleryTotal,roomTypeCount,roomsWithImage,roomsWithoutImage,status';
 const lines = rows.map((r) => r.status !== 'ok'
   ? [r.code, '', '', '', '', '', '', '', '', '', r.status].join(',')
-  : [r.code, r.recordId, r.listing, r.exterior ?? 'NO_TAB', r.interior ?? 'NO_TAB', r.rooms ?? 'NO_TAB',
+  : [r.code, r.recordId, r.listing, r.exterior ?? 'NO_TAB', r.interior ?? 'NO_TAB', r.rooms ?? 'NO_TAB', r.amenities ?? 'NO_TAB',
      r.galleryTotal, r.roomTypeCount, r.roomsWithImage, r.roomTypeCount - r.roomsWithImage, 'ok'].join(','));
 await writeFile('output/consolidated-report.csv', [head, ...lines].join('\n'));
 

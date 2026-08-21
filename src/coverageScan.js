@@ -10,7 +10,7 @@ import { asArray } from './asArray.js';
 // property written recently can read as 0 when it is not. Each row is flagged
 // with whether we wrote to it in this session so those can be discounted.
 
-const TABS = ['Exterior', 'Interior', 'Rooms'];
+const TABS = ['Exterior', 'Interior', 'Rooms', 'Amenities'];
 const CONCURRENCY = 3;
 const RETRIES = 3;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
